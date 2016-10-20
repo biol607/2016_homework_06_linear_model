@@ -1,0 +1,130 @@
+---
+title: "Homework06_LinearModels"
+output: html_document
+---
+
+Whitlock and Schluter Questions from Chapter 17 (pg 539)
+
+For the following, please use R to answer these questions on linear regression in W&S. Make sure you go through the full workflow of fitting and evaluating a linear model as we did in class, and point out any problems with inferences in addition to answering the questions.
+
+
+So, answer 19, 24, and 25.
+19.
+```{r}
+library(readr)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
+library(broom)
+library(modelr)
+
+grass <- read_csv("./data/chap17q19GrasslandNutrientsPlantSpecies.csv")
+
+##### a) draw scatterplot
+ggplot(data = grass,aes(x=nutrients, y=species)) +
+  geom_point()
+
+
+##### b) What is the rate of change in the number of plant species supported per nutrient type added? Provided a std err for estimate
+
+#linearmodel
+grass_lm <- lm(species ~ nutrients, data = grass)
+
+#assumptions
+plot(grass_lm, which = 1)
+plot(grass_lm, which = 2) 
+#qq plot looks a little off on the lower end of the data
+
+plot(grass_lm, which = 4)
+
+#t-test
+summary(grass_lm)
+
+### the rate of change is -3.339 plant species supported per nutrient type added (for every nutrient type added, the number of plant species decreases by 3.339)
+### standard error of estimate is 1.098
+
+
+##### c) add the least-squares regression line to scatterplot, what fraction of the variation in number of plant species is "explained" by the number of nutrients added?
+ggplot(data = grass, aes(x=nutrients, y=species)) +
+  geom_point() +
+  stat_smooth(method = "lm")
+
+summary(grass_lm)
+
+### (r squared) 0.536 of the variation in number of plant species is "explained" by the number of nutrients added
+
+
+##### d) test the null hypothesis of no treatment effect on the number of plant species
+anova(grass_lm)
+#assumptions are same as for t-test
+### f test statistic is 9.2406 with a P-value of 0.01607, (95% confidence) since the p-value is less than 0.05, we can reject the null that there is no treatment effect on the number of plant species
+```
+
+
+24.
+```{r}
+##### a) Calculate the mean, std dev, and sample size of the slope for penguins in each of the 3 groups, display results in a table
+penguins <- read_csv("./data/chap17q24PenguinTreadmill.csv")
+str(penguins)
+
+penguins_sum <- penguins %>%
+  group_by(group) %>%
+  summarise(mean_slope = mean(slope), sd_slope = sd(slope), samp_size = length(group))
+
+##### b) Test whether the means of the slopes are equal between three groups
+
+penguins_mod <- lm(slope ~ group, penguins)
+
+anova(penguins_mod)
+
+#assumptions
+plot(penguins_mod)
+plot(penguins_mod, which = 4)
+
+#distribution of residuals
+penguins_res <- residuals(penguins_mod)
+hist(penguins_res)
+
+ggplot(data = penguins) +
+  aes(x=group, y=slope) +
+  geom_boxplot() +
+  geom_point()
+
+#### very high p-value (0.4727), fail to reject the null that there is any difference between the means of the three groups
+```
+
+25.
+```{r}
+beetles <- read_csv("./data/chap17q25BeetleWingsAndHorns.csv")
+
+beetles_mod <- lm(wingMass ~ hornSize, beetles)
+
+##### a) use these results to calculate residuals
+
+#need to add predicted wing mass column (already shown in book)
+beetles <- beetles %>%
+  add_predictions(beetles_mod)
+
+beetles <- beetles %>%
+  mutate(resid = (wingMass - pred))
+
+
+##### b) use your results from part (a) to produce a residual plot 
+ggplot(data = beetles, aes(x=hornSize, y=resid)) +
+  geom_point() +
+  stat_smooth()
+
+ggplot(data = beetles, aes(x=resid)) +
+  geom_histogram(binwidth = 8)
+
+##### c) use the graph provided and your residual plot to evaluate the main assumptions of linear regression
+#The residual plot may be a little concerning, it curves up then down in an s shape suggesting that the residuals may not be normally distributed. (However a histogram of them looks like they are.)
+#The provided plot looks like it may be fairly linear but it does show more lower values under the line toward larger x values. 
+
+##### d) in light of your conclusions in part (c), what steps should be taken?
+#Test assumptions further: qqplot of residuals, histogram of residuals, and for linearity look at fitted and observed values. 
+```
+
+
+
+
