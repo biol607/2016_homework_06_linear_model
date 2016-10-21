@@ -1,0 +1,118 @@
+---
+title: "Han_06"
+author: "Wanting Han"
+date: "10/17/2016"
+output: html_document
+---
+```{r library}
+library(readr)
+library(ggplot2)
+library(dplyr)
+```
+
+**19. a. Draw a scatter plot of these data. Which variable should be the explanatory variable (X), and which should be the response variable (Y)?**
+
+```{r 19.a}
+# load data
+plant <- read_csv("./data/chap17q19GrasslandNutrientsPlantSpecies.csv")
+# Visualize the data
+plant_plot <- ggplot(data = plant, mapping = aes(x = nutrients, y = species)) +
+  geom_point()
+
+plant_plot
+```
+
+**b. What is the rate of change in the number of plant species supported per nutrient type added? Provide a standard error for your estimate.**
+```{r 19.b}
+# fit the model
+plant_lm <- lm(species ~ nutrients, data = plant)
+
+# t test
+summary(plant_lm)
+```
+
+* The rate of change in the number of plant species supported per nutrient type added is -3.339. And the standard error is 1.098.
+
+**c. Add the least-squares regression line to your scatter plot. What fraction of the variation in the number of plant species is "explained" by the number of nutrients added?**
+```{r 19.c}
+plant_plot +
+  stat_smooth(method = "lm", formula=y~x) +
+  theme_bw()
+```
+
+* There are 0.478 (Adjusted R-squared) variation in the number of plant species is "explained" by the number of nutrients added.
+
+**d. Test the null hypothesis of no treatment effect on the number of plant species.**
+```{r 19.d}
+# f test
+anova(plant_lm)
+```
+
+* The p value of f test is 0.01607, which is smaller than 0.05. So we can reject the null hypothsis that there has no treatment effect on the number of plant species. 
+
+**24.a. Calculate the mean, standard deviation, and sample size of the slope for penguins in each of the three groups. Display your results in a table.**
+```{r 24.a}
+# load data
+peng <- read_csv("./data/chap17q24PenguinTreadmill.csv")
+
+# visualize the data
+peng_plot <- ggplot(data = peng, 
+                    mapping = aes(x = group, y = slope)) +
+  geom_point()
+
+# calculate the mean, sd, add sample size
+peng_data <- peng %>%
+  group_by(group) %>%
+  summarise(mean = mean(slope), sd = sd(slope), sample_size = length(slope)) %>%
+  ungroup()
+
+# create a data frame
+peng_df <- as.data.frame(peng_data)
+
+peng_df
+```
+
+**b. Test whether the means of the slope are equal between the three groups.**
+```{r 24.b}
+# fit the model
+peng_mod <- lm(slope ~ group, data = peng)
+
+# assumptions
+plot(peng_mod, which = 1)
+plot(peng_mod, which = 2)
+
+# f tests 
+anova(peng_mod)
+```
+
+* The p value is 0.4727, which is more larger than 0.05. Then we couldn't reject the null hyphothesis that the means of the slope are equal between the three groups.
+
+**25.a. Use these results to calculate the residuals.**
+```{r 25.a}
+#load data
+beetle <- read_csv("./data/chap17q25BeetleWingsAndHorns.csv")
+
+# fit the modle
+beetle_lm <- lm(wingMass ~ hornSize, data = beetle)
+
+# calculate residuals
+beetle <- beetle %>%
+  mutate(res_beetle = residuals(beetle_lm)) 
+```
+
+**b. Use your results from part(a) to produce a residual plot.**
+```{r 25.b}
+ggplot(data = beetle, 
+       mapping = aes(x = hornSize, y = res_beetle)) +
+  geom_point() +
+  geom_hline(yintercept = 0)
+```
+
+**c. Use the graph provided and your residual plot to evaluate the main assumptions of linear regression.**
+
+* The residual plot shows that data don't distribute around the zero horizontal line. And they are not symmetric. This shows that the residuals don't have normality and equal variance. This data might not fit the linear regression model.
+
+**d. In light of your conclusions in part(c), what steps should be taken?**
+
+* We can do the data transformation or try a nonlinear regression model to see which fits the data best.
+
