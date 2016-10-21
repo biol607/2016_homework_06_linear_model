@@ -1,0 +1,138 @@
+---
+title: 'Homework #6'
+author: "Jessica Karch"
+date: "October 17, 2016"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+##19.##  
+**a.** Draw a scatter plot of these data. Which variable should be the explanatory variable (*X*), and wich should be the response variable (*Y*)?  
+```{r = 19a}
+# Load libraries
+library(readr)
+library(dplyr)
+library(ggplot2)
+# Load data
+plants <- read_csv("data/chap17q19GrasslandNutrientsPlantSpecies.csv")
+# Inspect data
+plants
+# Draw a scatter plot
+plants_plot <- ggplot(data = plants, mapping = aes(x = nutrients, y = species)) +
+  geom_point() +
+  labs(title = "The Effect of Different Nutrients in Fertilizer on the Number of Plant Species")
+# Look at plot
+plants_plot
+```
+
+The number of nutrients added is the explanatory variable *X* and the number of plant species is the response variable *Y*.  
+
+**b.** What is the rate of change in the number of plant species supported per nutrient type added? Provide a standard error for your estimate.  
+```{r = 19b}
+# Fit a linear model
+plants_lm <- lm(species ~ nutrients, data = plants)
+# Look at the slope, standard error
+summary(plants_lm)
+```
+
+The rate of change is -3.3 +/- 1.1 plant species supported per nutrient type added.
+
+**c.** Add the least-squares regression line to your scatter plot. What fraction of the variation in the number of plant species is "explained" by the number of nutrients added?  
+```{r = 19c}
+# Make a regression line to the scatter plot
+plants_plot +
+  stat_smooth(method = "lm") +
+  theme_bw()
+```
+
+2/3 of the variation is "explained" by the number of nutrients added (6 of the 9 points fall within the confidence interval of the linear model).
+
+**d.** Test the null hypothesis of no treatment effect on the number of plant species.  
+```{r = 19d}
+# Do an f test
+anova(plants_lm)
+# Look at the R^2 values, p-values
+summary(plants_lm)
+```
+
+Our F-value is 9.24, and we have a pretty small p-value (0.016), especially taking into consideration the fact we only have 9 data points which bypasses the problem of the "obese n". Therefore we can feel fairly confident rejecting the null hypothesis that there is no treatment effect on the plant species.
+
+##24.##  
+**a.** Calculate the mean, standard deviation, and sample size of the slope for penguins in each of the three groups. Display your results in a table.  
+```{r = 24a}
+# Load data
+penguins <- read_csv("data/chap17q24PenguinTreadmill.csv")
+# Inspect data
+penguins
+# Group data by group
+penguins_table <- penguins %>%
+  group_by(group) %>%
+  # calculate the mean and standard deviation
+  mutate(mean = mean(slope), sd = sd(slope)) %>%
+  # find the number of points in a group
+  group_by(group, mean, sd) %>%
+  summarise(n = n()) %>%
+  ungroup()
+# look at table
+penguins_table
+```
+
+**b.** Test whether the means of the slopes are equal between the three groups.  
+```{r = 24b}
+# Test null hypothesis, that means of the slopes are equal
+# Ha: the means of the slopes are not equal
+# Set up dummy vectors for each group w/ mean, sd, samp size from part a, assuming a normal distribution
+# use the means and sd calculated in part a
+set.seed(42)
+BF <- rnorm(9, mean = 0.3155556, sd = 0.05725188)
+BM <- rnorm(9, mean = 0.3355556, sd = 0.02697736)
+MF <- rnorm(6, mean = 0.3033333, sd = 0.06683313)
+# Set up a data frame with response variable and group
+dat = data.frame(factor = c("BF","BF","BF","BF","BF","BF","BF","BF","BF","BM", "BM","BM","BM","BM","BM", "BM", "BM", "BM", "MF", "MF", "MF", "MF", "MF", "MF"),
+                 response = c(BF, BM, MF))
+# Run ANOVA analysis
+summary(aov(response ~ factor, data = dat))
+# compare each mean to each other with a t test
+t.test(BF, BM)
+t.test(BF, MF)
+t.test(BM, MF)
+```
+We have failed to reject the null hypothesis that the means are equal. The F value from our ANOVA test is very small (2.417) and the p value is large (0.114). Of the three t-tests, each of them has a 95% confidence interval that includes 0. Therefore we have failed to rject the null.
+##25.##  
+**a.** Use these results to calculate the residuals.  
+```{r = 25a}
+# Load data
+beetles <- read_csv("data/chap17q25BeetleWingsAndHorns.csv")
+# Inspect data
+beetles
+# Fit a linear model
+beetles_lm <- lm(wingMass ~ hornSize, data = beetles)
+# Calculate residuals
+res_beetles <- residuals(beetles_lm)
+res_beetles
+```
+
+**b.** Use your results from part (a) to produce a residual plot.  
+```{r = 25b}
+# Load library
+library(modelr)
+# Add residuals column to main tibble
+res_beetles_tb <- beetles %>% add_residuals(beetles_lm)
+ggplot(data = res_beetles_tb, mapping = aes(x = hornSize, y = resid)) +
+  geom_point() +
+  labs(title = "Residual plot") +
+  theme_bw()
+```
+
+**c.** Use the graph provided and your residual plot to evaluate the main assumptions of linear regression.  
+
+We see that the residual plot graph has a funnel effect, so that at larger relative horn sizes (>0.0) there  is a wider range of residual values. The plot of the data also shows that larger relative horn sizes there is a wider range of relative wing masses. The linear regression assumes that there is a direct causal relationship between relative horn size and relative wing mass. Due to the funnel effect in both the residual plot and the main graph and the very large residuals (on the same order of magnitude as the original data), I am not sure we can assume a causal relationship between the two variables, or at least we cannot assume a linear relationship.
+
+**d.** In light of your conclusions in part (c), what steps should be taken?  
+
+First, run other statistical tests, such as f test and a t test. Then try log-transforming the data, as it looks like there might be an exponential relationship in the original graph (at a certain point, the relative wing mass values get smaller very quickly, whereas the head of the graph is fairly flat).
+
+The statistical tests of the log-transformed data can be compared to that of the linear regression to see if that relationship would better fit the  data. Then evaluate the results of the log and the linear regressions in light of what is known from literature about these beetles and evaluate what could have been the source of so much variation in the population (samples from different areas, etc.). If there is no satisfactory explanation, it might be justified to collect more data, especially because the authors only evaluated a sample size of 19.
